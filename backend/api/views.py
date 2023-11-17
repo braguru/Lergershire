@@ -1,9 +1,9 @@
 from django.shortcuts import render, get_object_or_404
 from rest_framework import generics, status
-from .serializers import RegisterSerializer, InvitationSerializer, UserSerializer, ProfileSerializer, ChangePasswordSerializer, NotificationSerializer
+from .serializers import RegisterSerializer, InvitationSerializer, UserSerializer, ProfileSerializer, ChangePasswordSerializer
 from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import RefreshToken
-from .models import User, Profile, InvitationEmail, Notification
+from .models import User, Profile, InvitationEmail
 from django.contrib.auth import authenticate, login
 from django.contrib.auth.models import User
 from django.core.mail import send_mail
@@ -17,7 +17,7 @@ from rest_framework.permissions import IsAuthenticated
 from django.contrib.auth.hashers import make_password
 import secrets
 import string
-from .permissions import IsAdminUser, IsOwnerOrReadOnly
+from .permissions import IsAdminUser
 
 
 # Create your views here.
@@ -102,22 +102,25 @@ def login_user(request):
 
 class Profile(viewsets.ModelViewSet):
     """Handles creating and updating profile"""
-    
     queryset = Profile.objects.all()
     serializer_class = ProfileSerializer
-    permission_classes = [IsOwnerOrReadOnly]
+    permission_classes = (IsAuthenticated,)
     
-    # def retrieve(self, request, pk=None):
-    #     try:
-    #         user = User.objects.get(pk=pk)
-    #         profile = user.profile
-    #         serializer = ProfileSerializer(profile)
-    #         return Response(serializer.data)
-    #     except User.DoesNotExist:
-    #         return Response({"error": "User not found"}, status=status.HTTP_404_NOT_FOUND)
-    #     except Profile.DoesNotExist:
-    #             return Response({"error": "Profile not found"}, status=status.HTTP_404_NOT_FOUND)
-            
+    def get_object(self):
+        return self.request.user
+    
+    
+    
+
+# class UserAPIView(generics.RetrieveUpdateAPIView):
+#     serializer_class = UserSerializer
+#     queryset = User.objects.all()
+#     permission_classes = (IsAuthenticated,)
+
+#     def get_object(self):
+#         return self.request.user
+   
+
     
 
 
@@ -145,9 +148,3 @@ class ChangePasswordView(APIView):
 
         return Response({'message': 'Password changed successfully.'}, status=200)
     
-    
-class NotificationView(viewsets.ModelViewSet):
-    """Handles creating and updating profile"""
-    
-    queryset = Notification.objects.all()
-    serializer_class = NotificationSerializer

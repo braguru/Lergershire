@@ -8,7 +8,7 @@ from phonenumber_field.modelfields import PhoneNumberField
 # Overide default user model
 
 class UserManager(BaseUserManager):
-    def create_user(self, username, email, phone_number, password=None):
+    def create_user(self, username, email, phone_number, fund_type, amount_to_invest, investment_objectives, password=None):
         
         if username is None:
             raise TypeError('users should have a username')
@@ -16,7 +16,8 @@ class UserManager(BaseUserManager):
         if email is None:
             raise TypeError('users should have a email')
         
-        user = self.model(username=username , email = self.normalize_email(email), phone_number=phone_number)
+        user = self.model(username=username , email = self.normalize_email(email), phone_number=phone_number, fund_type=fund_type,
+                          amount_to_invest=amount_to_invest, investment_objectives=investment_objectives)
         user.set_password(password)
         user.save()    
         
@@ -35,9 +36,18 @@ class UserManager(BaseUserManager):
         return user
      
 class User(AbstractBaseUser, PermissionsMixin):
-    username = models.CharField(max_length=255, unique=True, db_index=True)
-    email = models.EmailField(max_length=255, unique=True, db_index=True)
-    phone_number = PhoneNumberField(blank=True)
+    FUND_TYPE = [
+        ('CI', 'Citadel Fund'),
+        ('CA', 'Capernaum Fund'),
+        ('SM', 'Selby Medallion Fund'),
+    ]
+    username = models.CharField(max_length=255, unique=True, db_index=True, null=False)
+    email = models.EmailField(max_length=255, unique=True, db_index=True, null=False)
+    phone_number = PhoneNumberField(blank=True, null=False)
+    fund_type = models.CharField(max_length=15, choices=FUND_TYPE, default='CI')
+    # profile_picture = models.ImageField(blank=True, null=True)
+    amount_to_invest = models.IntegerField(default=0)
+    investment_objectives = models.CharField(max_length=750, blank=True, null=True)
     is_verified = models.BooleanField(default=False)
     is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=False)
@@ -69,27 +79,17 @@ class InvitationEmail(models.Model):
         return self.email  # Return the email when the object is converted to a string
     
 
-class login(models.Model):
-    uname = models.CharField(max_length=50)
-    email = models.EmailField(max_length=254)
-    password = models.CharField(max_length=254)
-    
-    def __str__(self):
-        return self.uname
 
 class Profile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="profile")
     profile_pic = models.ImageField(default='default.jpg', upload_to='profile_pics')
-    Investment_objectives = models.CharField(max_length=500)
+    username = models.CharField(max_length=255, default="", null=False) 
+    phone_number = PhoneNumberField(blank=True)
+    email = models.EmailField(max_length=255, default="", null=False)
+    investment_objectives = models.CharField(max_length=750, default="", null=False)
         
 
     def __str__(self):
         return f'{self.user.username} Profile'
   
-    
-    
-class Notification(models.Model):
-    notification = models.TextField(max_length=1000)
-    
-    def __str__(self):
-        return self.notification
+ 

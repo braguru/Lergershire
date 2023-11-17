@@ -1,8 +1,8 @@
 from rest_framework import serializers, status
-from .models import User, InvitationEmail, Profile, Notification
+from .models import User, InvitationEmail, Profile
 from phonenumber_field.serializerfields import PhoneNumberField
 from rest_framework.response import Response
-from .permissions import IsOwnerOrReadOnly
+
 
 class RegisterSerializer(serializers.ModelSerializer):
     password = serializers.CharField(max_length = 68, min_length = 6, write_only = True)
@@ -10,7 +10,7 @@ class RegisterSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = User
-        fields = ['username', 'email', 'phone_number','password']
+        fields = ['id','username', 'email', 'phone_number', 'password', 'fund_type', 'amount_to_invest', 'investment_objectives']
         
     def validate(self, attrs):
         email = attrs.get('email', '')
@@ -31,48 +31,28 @@ class InvitationSerializer(serializers.ModelSerializer):
        model = InvitationEmail
        fields = ['email']
        
+      
+      
+class ProfileSerializer(serializers.ModelSerializer):    
+    class Meta:
+        model = Profile
+        fields = ('id', 'username', 'email', 'profile_pic', 'phone_number','investment_objectives')
+    
+        
+    
        
+ 
 # User Serializer
 class UserSerializer(serializers.ModelSerializer):
     class Meta(object):
         model = User
-        fields = ('id', 'username', 'email', 'password')
-    
+        fields = ('id', 'username', 'email', 'phone_number', 'fund_type', 'amount_to_invest', 'investment_objectives')
+        extra_kwargs = {'password': {'write_only':True}}
 
-# class SettingsSerializer(serializers.ModelSerializer):
-#     """A serializer for our user profile objects. """
-#     profile_pic = serializers.SerializerMethodField()
-#     # Investment_objectives = serializers.SerializerMethodField()
-    
-#     class Meta:
-#         model = Profile
-#         fields = ('profile_pic', 'Investment_objectives')
         
-        
-        
-class ProfileSerializer(serializers.ModelSerializer):
-    # profile = SettingsSerializer()
-    username = serializers.CharField(source='user.username')
-    email = serializers.EmailField(source='user.email')
-    
-    class Meta:
-        model = Profile
-        fields = ('id', 'username', 'email', 'profile_pic', 'Investment_objectives')
-        
-    def get_permissions(self):
-        if self.request.method in ['PUT', 'PATCH']:
-            return [IsOwnerOrReadOnly()]
-        return []
 
-   
 
 class ChangePasswordSerializer(serializers.Serializer):
     current_password = serializers.CharField(required=True)
     new_password = serializers.CharField(required=True)
     retype_new_password = serializers.CharField(required=True)
-    
-    
-class NotificationSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Notification
-        fields = "__all__"
