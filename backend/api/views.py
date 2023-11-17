@@ -2,7 +2,6 @@ from django.shortcuts import render, get_object_or_404
 from rest_framework import generics, status
 from .serializers import RegisterSerializer, InvitationSerializer, UserSerializer, ProfileSerializer, ChangePasswordSerializer
 from rest_framework.response import Response
-from rest_framework_simplejwt.tokens import RefreshToken
 from .models import User, Profile, InvitationEmail
 from django.contrib.auth import authenticate, login
 from django.contrib.auth.models import User
@@ -17,7 +16,7 @@ from rest_framework.permissions import IsAuthenticated
 from django.contrib.auth.hashers import make_password
 import secrets
 import string
-from .permissions import IsAdminUser
+
 
 
 # Create your views here.
@@ -110,41 +109,38 @@ class Profile(viewsets.ModelViewSet):
         return self.request.user
     
     
-    
 
-# class UserAPIView(generics.RetrieveUpdateAPIView):
-#     serializer_class = UserSerializer
-#     queryset = User.objects.all()
-#     permission_classes = (IsAuthenticated,)
-
-#     def get_object(self):
-#         return self.request.user
-   
-
-    
 
 
 class ChangePasswordView(APIView):
-    # permission_classes = [IsAuthenticated]
-
+    permission_classes = (IsAuthenticated)
     def put(self, request):
-        serializer = ChangePasswordSerializer
-        # Get the user making the request
-        user = request.user
+        # Create an instance of the serializer with the request data
+        serializer = ChangePasswordSerializer(data=request.data)
 
-        # Get the current password and new password from the request data
-        current_password = request.data.get('current_password')
-        new_password = request.data.get('new_password')
-        retype_new_password = request.data.get('new_password')
+        # Check if the data is valid
+        if serializer.is_valid():
+            # Get the user making the request
+            user = request.user
 
-        if current_password == retype_new_password:
-        # Verify the current password
+            # Get the current password, new password, and retype new password from the request data
+            current_password = serializer.validated_data.get('current_password')
+            new_password = serializer.validated_data.get('new_password')
+            retype_new_password = serializer.validated_data.get('retype_new_password')
+
+            # Verify the current password
             if not user.check_password(current_password):
-                return Response({'error': 'Invalid current password.'}, status=400)
+                return Response({'error': 'Invalid current password.'}, status=status.HTTP_400_BAD_REQUEST)
 
-        # Set the new password for the user
-        user.password = make_password(new_password)
-        user.save()
+            # Check if the new passwords match
+            if new_password != retype_new_password:
+                return Response({'error': 'New passwords do not match.'}, status=status.HTTP_400_BAD_REQUEST)
 
-        return Response({'message': 'Password changed successfully.'}, status=200)
-    
+            # Set the new password for the user using set_password
+            user.set_password(new_password)
+            user.save()
+
+            return Response({'message': 'Password changed successfully.'}, status=status.HTTP_200_OK)
+        
+        # If the serializer is not valid, return the validation errors
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

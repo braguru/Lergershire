@@ -38,9 +38,7 @@ class ProfileSerializer(serializers.ModelSerializer):
         model = Profile
         fields = ('id', 'username', 'email', 'profile_pic', 'phone_number','investment_objectives')
     
-        
-    
-       
+   
  
 # User Serializer
 class UserSerializer(serializers.ModelSerializer):
@@ -53,6 +51,7 @@ class UserSerializer(serializers.ModelSerializer):
 
 
 class ChangePasswordSerializer(serializers.Serializer):
+    model = User
     current_password = serializers.CharField(required=True)
     new_password = serializers.CharField(required=True)
     retype_new_password = serializers.CharField(required=True)

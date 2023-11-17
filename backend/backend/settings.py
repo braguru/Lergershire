@@ -43,6 +43,8 @@ INSTALLED_APPS = [
     'rest_framework',
     "corsheaders",
     "phonenumber_field",
+    # "django.contrib.staticfiles",
+    "drf_yasg",
 ]
 
 REST_FRAMEWORK = {
