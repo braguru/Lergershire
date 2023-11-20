@@ -51,7 +51,8 @@ class UserSerializer(serializers.ModelSerializer):
 
 
 class ChangePasswordSerializer(serializers.Serializer):
-    model = User
-    current_password = serializers.CharField(required=True)
-    new_password = serializers.CharField(required=True)
-    retype_new_password = serializers.CharField(required=True)
+    class meta:
+        model = User
+        current_password = serializers.CharField(required=True)
+        new_password = serializers.CharField(required=True)
+        retype_new_password = serializers.CharField(required=True)

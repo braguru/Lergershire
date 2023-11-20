@@ -14,12 +14,23 @@ from django.contrib.auth import get_user_model
 from rest_framework import viewsets
 from rest_framework.permissions import IsAuthenticated
 from django.contrib.auth.hashers import make_password
+from rest_framework.authtoken.models import Token
 import secrets
 import string
 
 
 
 # Create your views here.
+@api_view()
+def Routes(request):
+    return Response({
+        "register : http://127.0.0.1:8000/api/register/",
+        "login : http://127.0.0.1:8000/api/login/",
+        "send_invitation : http://127.0.0.1:8000/api/send_invitation/", 
+        "change_password : http://127.0.0.1:8000/api/change_password/",
+        "profile : http://127.0.0.1:8000/api/profile/",
+    })
+
 class RegisterView(generics.GenericAPIView):
     serializer_class = RegisterSerializer
     def post(self, request):
@@ -57,15 +68,21 @@ class send_invitation(APIView):
             user = User.objects.get(email=email)
         except User.DoesNotExist:
             user = None
-
+            
+            
+        password = ''
         # If user does not exist, create a new one
         if not user:
             username = email.split('@')[0]
+            phone_number = ""
+            fund_type = ""
+            amount_to_invest = 0
+            investment_objectives = ""
             # password = User.objects.make_random_password()
             password = generate_random_password()
-            user = User.objects.create_user(username=username, email=email, password=password)
+            user = User.objects.create_user(username=username, email=email, password=password, phone_number=phone_number, fund_type=fund_type, amount_to_invest=amount_to_invest, investment_objectives=investment_objectives)
         
-        password = password
+        
 
         # Send invitation email with link to login
         subject = 'Invitation to login'
@@ -89,13 +106,21 @@ class send_invitation(APIView):
 
 @api_view(['POST'])
 def login_user(request):
-    user = get_object_or_404(User, email=request.data['email'])
-    if not user.check_password(request.data['password']):
-        return Response({"detail": "Not found."}, status=status.HTTP_400_BAD_REQUEST)
-    # token, created = Token.objects.get_or_create(user=user)
-    serializer = UserSerializer(instance=user)
-    return Response({"user":serializer.data}) # return the data including the token
+    # Assuming you have a custom User model with an 'email' field
+    user = get_object_or_404(User, email=request.data.get('email'))
 
+    # Check if the provided password is correct
+    if not user.check_password(request.data.get('password')):
+        return Response({"detail": "Invalid credentials"}, status=status.HTTP_400_BAD_REQUEST)
+
+    # If the password is correct, generate or get the user's token
+    token, created = Token.objects.get_or_create(user=user)
+
+    # Serialize the user data (you might want to customize the serializer)
+    serializer = UserSerializer(instance=user)
+
+    # Return the user data along with the token
+    return Response({"user": serializer.data, "token": token.key})
 
 
 
@@ -113,7 +138,7 @@ class Profile(viewsets.ModelViewSet):
 
 
 class ChangePasswordView(APIView):
-    permission_classes = (IsAuthenticated)
+    permission_classes = [IsAuthenticated,]
     def put(self, request):
         # Create an instance of the serializer with the request data
         serializer = ChangePasswordSerializer(data=request.data)
