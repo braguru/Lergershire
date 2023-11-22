@@ -1,9 +1,9 @@
 from django.shortcuts import render, get_object_or_404
-from rest_framework import generics, status
-from .serializers import RegisterSerializer, InvitationSerializer, UserSerializer, ProfileSerializer, ChangePasswordSerializer
+from rest_framework import generics, status, permissions
+from .serializers import RegisterSerializer, InvitationSerializer, UserSerializer, ProfileSerializer, ChangePasswordSerializer, ForgotPasswordSerializer
 from rest_framework.response import Response
 from .models import User, Profile, InvitationEmail
-from django.contrib.auth import authenticate, login
+from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.models import User
 from django.core.mail import send_mail
 from django.urls import reverse
@@ -15,6 +15,13 @@ from rest_framework import viewsets
 from rest_framework.permissions import IsAuthenticated
 from django.contrib.auth.hashers import make_password
 from rest_framework.authtoken.models import Token
+from django.contrib.auth.tokens import PasswordResetTokenGenerator
+from django.utils.encoding import smart_str, force_str, smart_bytes, DjangoUnicodeDecodeError
+from django.contrib.sites.shortcuts import get_current_site
+from django.urls import reverse
+from .utils import Util
+from django.utils.http import urlsafe_base64_encode
+
 import secrets
 import string
 
@@ -29,6 +36,7 @@ def Routes(request):
         "send_invitation : http://127.0.0.1:8000/api/send_invitation/", 
         "change_password : http://127.0.0.1:8000/api/change_password/",
         "profile : http://127.0.0.1:8000/api/profile/",
+        "logout : http://127.0.0.1:8000/api/logout/",
     })
 
 class RegisterView(generics.GenericAPIView):
@@ -108,6 +116,8 @@ class send_invitation(APIView):
 def login_user(request):
     # Assuming you have a custom User model with an 'email' field
     user = get_object_or_404(User, email=request.data.get('email'))
+    data = request.data
+    data['username'] = request.data.get('email')
 
     # Check if the provided password is correct
     if not user.check_password(request.data.get('password')):
@@ -117,10 +127,32 @@ def login_user(request):
     token, created = Token.objects.get_or_create(user=user)
 
     # Serialize the user data (you might want to customize the serializer)
-    serializer = UserSerializer(instance=user)
+    serializer = UserSerializer(instance=user, data=data)
+    
+    if serializer.is_valid(raise_exception=True):
+        login(request, user)
 
     # Return the user data along with the token
     return Response({"user": serializer.data, "token": token.key})
+
+
+class logout_user(APIView):
+    """
+    API View for user logout.
+    """
+    permission_classes = (permissions.AllowAny,)
+    authentication_classes = ()
+    def post(self, request):
+        """
+        API endpoint for user logout.
+        This view handles user logout by logging out the current user.
+        Parameters:
+        - request: The HTTP request object for user logout.
+        Returns:
+        - Returns a response with HTTP 200 OK, indicating a successful logout.
+        """
+        logout(request)
+        return Response(status=status.HTTP_200_OK)
 
 
 
@@ -139,9 +171,11 @@ class Profile(viewsets.ModelViewSet):
 
 class ChangePasswordView(APIView):
     permission_classes = [IsAuthenticated,]
+    serializer_class = ChangePasswordSerializer
+    
     def put(self, request):
         # Create an instance of the serializer with the request data
-        serializer = ChangePasswordSerializer(data=request.data)
+        serializer = self.serializer_class(data=request.data)
 
         # Check if the data is valid
         if serializer.is_valid():
@@ -169,3 +203,34 @@ class ChangePasswordView(APIView):
         
         # If the serializer is not valid, return the validation errors
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+    
+    
+
+class forgot_password(generics.GenericAPIView):
+    serializer_class = ForgotPasswordSerializer
+    
+    def post(self, request):
+        # data = {'request':request, 'data': request.data}
+        serializer = self.serializer_class(data=request.data)
+        email = request.data.get('email', '')
+        if User.objects.filter(email=email).exists():
+            user = User.objects.get(email=email)
+            uidb64 = urlsafe_base64_encode(smart_bytes(user.id))
+            token = PasswordResetTokenGenerator().make_token(user)
+            
+            redirect_url = request.data.get('redirect_url', '')
+            current_site = get_current_site(request=request).domain
+            relativeLink = reverse('reset_password', kwargs={'uidb64':uidb64, 'token':token})
+            absurl = 'http://'+current_site+relativeLink
+            email_body = 'Hi \n Use the link below to reset your password \n'+ absurl + '?redirect_url='+redirect_url
+            data = {'email_body': email_body, 'to_email':email, 'email_subject':'Reset your password'}
+            Util.send_email(data)
+        
+        return Response({'success': f'A password reset link has been sent to your email'}, status=status.HTTP_200_OK)
+        
+
+
+class PasswordTokenCheckAPI(generics.GenericAPIView):
+    def get(self, request, uidb64, token):
+        pass

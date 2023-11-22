@@ -45,7 +45,6 @@ class User(AbstractBaseUser, PermissionsMixin):
     email = models.EmailField(max_length=255, unique=True, db_index=True, null=False)
     phone_number = PhoneNumberField(blank=True, null=False)
     fund_type = models.CharField(max_length=15, choices=FUND_TYPE, default='CI')
-    # profile_picture = models.ImageField(blank=True, null=True)
     amount_to_invest = models.IntegerField(default=0)
     investment_objectives = models.CharField(max_length=750, blank=True, null=True)
     is_verified = models.BooleanField(default=False)
