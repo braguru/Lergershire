@@ -50,10 +50,10 @@ class User(AbstractUser):
     ]
     username = models.CharField(max_length=255, unique=True, db_index=True, null=False)
     email = models.EmailField(max_length=255, unique=True, db_index=True, null=False)
-    phone_number = PhoneNumberField(null=False)
+    phone_number = PhoneNumberField()
     fund_type = models.CharField(max_length=15, choices=FUND_TYPE, default='CI')
     amount_to_invest = models.IntegerField(default=0)
-    investment_objectives = models.CharField(max_length=750, blank=True)
+    investment_objectives = models.CharField(max_length=750, blank=False, default="None")
     is_verified = models.BooleanField(default=False)
     is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=False)
