@@ -205,32 +205,3 @@ class ChangePasswordView(APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
     
-    
-
-class forgot_password(generics.GenericAPIView):
-    serializer_class = ForgotPasswordSerializer
-    
-    def post(self, request):
-        # data = {'request':request, 'data': request.data}
-        serializer = self.serializer_class(data=request.data)
-        email = request.data.get('email', '')
-        if User.objects.filter(email=email).exists():
-            user = User.objects.get(email=email)
-            uidb64 = urlsafe_base64_encode(smart_bytes(user.id))
-            token = PasswordResetTokenGenerator().make_token(user)
-            
-            redirect_url = request.data.get('redirect_url', '')
-            current_site = get_current_site(request=request).domain
-            relativeLink = reverse('reset_password', kwargs={'uidb64':uidb64, 'token':token})
-            absurl = 'http://'+current_site+relativeLink
-            email_body = 'Hi \n Use the link below to reset your password \n'+ absurl + '?redirect_url='+redirect_url
-            data = {'email_body': email_body, 'to_email':email, 'email_subject':'Reset your password'}
-            Util.send_email(data)
-        
-        return Response({'success': f'A password reset link has been sent to your email'}, status=status.HTTP_200_OK)
-        
-
-
-class PasswordTokenCheckAPI(generics.GenericAPIView):
-    def get(self, request, uidb64, token):
-        pass

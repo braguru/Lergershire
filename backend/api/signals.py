@@ -5,7 +5,7 @@ from django.dispatch import receiver
 
 @receiver(post_save, sender=User)
 def create_profile(sender, instance, created, **kwargs):
-    # If the user is created, create a new Setting object
+    # If the user is created, create a new profile object
     if created:
         user = instance
         profile = Profile.objects.create(user=user, username=user.username, 

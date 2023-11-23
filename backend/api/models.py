@@ -1,41 +1,48 @@
 from django.db import models
-from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
+from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin, AbstractUser
 from django.utils import timezone
 from phonenumber_field.modelfields import PhoneNumberField
-
+from django.dispatch import receiver
+from django.urls import reverse
+from django_rest_passwordreset.signals import reset_password_token_created
+from django.core.mail import send_mail, EmailMessage
 # Create your models here.
 
 # Overide default user model
 
-class UserManager(BaseUserManager):
-    def create_user(self, username, email, phone_number, fund_type, amount_to_invest, investment_objectives, password=None):
+# class UserManager(BaseUserManager):
+#     def create_user(self, username, email, phone_number, fund_type, amount_to_invest, investment_objectives, password=None):
         
-        if username is None:
-            raise TypeError('users should have a username')
+#         if username is None:
+#             raise TypeError('users should have a username')
         
-        if email is None:
-            raise TypeError('users should have a email')
+#         if email is None:
+#             raise TypeError('users should have a email')
         
-        user = self.model(username=username , email = self.normalize_email(email), phone_number=phone_number, fund_type=fund_type,
-                          amount_to_invest=amount_to_invest, investment_objectives=investment_objectives)
-        user.set_password(password)
-        user.save()    
+#         user = self.model(username=username , email = self.normalize_email(email), phone_number=phone_number, fund_type=fund_type,
+#                           amount_to_invest=amount_to_invest, investment_objectives=investment_objectives)
+#         user.set_password(password)
+#         user.save()    
         
-        return user
+#         return user
         
-    def create_superuser(self, username, email, password=None):
+#     def create_superuser(self, username, email, password=None):
         
-        if password is None:
-            raise TypeError('A password is required')
+#         if password is None:
+#             raise TypeError('A password is required')
+#         if not password:
+#             raise ValueError("User must have a password")
         
-        user = self.create_user(username, email, password)
-        user.is_superuser = True
-        user.is_staff = True
-        user.save()
+#         user = self.model(self, email=self.normalize_email(email))
+#         user.username = username
+#         user.set_password(password)
+#         user.is_superuser = True
+#         user.is_staff = True
+#         user.save()
         
-        return user
+        # return user
      
-class User(AbstractBaseUser, PermissionsMixin):
+class User(AbstractUser):
     FUND_TYPE = [
         ('CI', 'Citadel Fund'),
         ('CA', 'Capernaum Fund'),
@@ -43,10 +50,10 @@ class User(AbstractBaseUser, PermissionsMixin):
     ]
     username = models.CharField(max_length=255, unique=True, db_index=True, null=False)
     email = models.EmailField(max_length=255, unique=True, db_index=True, null=False)
-    phone_number = PhoneNumberField(blank=True, null=False)
+    phone_number = PhoneNumberField(null=False)
     fund_type = models.CharField(max_length=15, choices=FUND_TYPE, default='CI')
     amount_to_invest = models.IntegerField(default=0)
-    investment_objectives = models.CharField(max_length=750, blank=True, null=True)
+    investment_objectives = models.CharField(max_length=750, blank=True)
     is_verified = models.BooleanField(default=False)
     is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=False)
@@ -56,7 +63,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = ['username']
     
-    objects = UserManager()
+    # objects = UserManager()
     
     
     def __str__(self):
@@ -92,3 +99,27 @@ class Profile(models.Model):
         return f'{self.user.username} Profile'
   
  
+
+
+
+@receiver(reset_password_token_created)
+def password_reset_token_created(sender, instance, reset_password_token, *args, **kwargs):
+
+    # the below like concatinates your websites reset password url and the reset email token which will be required at a later stage
+    email_plaintext_message = "Open the link to reset your password" + " " + "{}{}".format(instance.request.build_absolute_uri("http://localhost:3000/login#/reset-password-form/"), reset_password_token.key)
+    
+    """
+        this below line is the django default sending email function, 
+        takes up some parameter (title(email title), message(email body), from(email sender), to(recipient(s))
+    """
+    send_mail(
+        # title:
+        "Password Reset for {title}".format(title="Crediation portal account"),
+        # message:
+        email_plaintext_message,
+        # from:
+        "info@yourcompany.com",
+        # to:
+        [reset_password_token.user.email],
+        fail_silently=False,
+    )

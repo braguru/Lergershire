@@ -13,6 +13,9 @@ https://docs.djangoproject.com/en/4.2/ref/settings/
 from pathlib import Path
 import os
 import dj_database_url
+from dotenv import load_dotenv
+
+load_dotenv()
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -26,9 +29,10 @@ SECRET_KEY = os.environ.get("SECRET_KEY")
 #'django-insecure-@5644!n6#@1+cyh&8b*t64t4uqdolvw!0bu8sope)qhh3gs0wr'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = os.environ.get("DEBUG", "False").lower() == "true"
+DEBUG = True if os.environ.get("DEBUG") == "True" else False
 
-ALLOWED_HOSTS = os.environ.get("ALLOWED_HOSTS", "").split(" ")
+# ALLOWED_HOSTS = os.environ.get("ALLOWED_HOSTS", "127.0.0.1").split(" ")
+ALLOWED_HOSTS = ['*']
 
 AUTH_USER_MODEL = 'api.User'
 
@@ -48,6 +52,7 @@ INSTALLED_APPS = [
     "phonenumber_field",
     # "django.contrib.staticfiles",
     "drf_yasg",
+    "django_rest_passwordreset",
 ]
 
 REST_FRAMEWORK = {
@@ -100,8 +105,16 @@ DATABASES = {
         'NAME': BASE_DIR / 'db.sqlite3',
     }
 }
-database_url = os.environ.get("DATABASE_URL")
-DATABASES['default'] = dj_database_url.parse(database_url)
+
+
+
+# database_url = os.environ.get("DATABASE_URL")
+# DATABASES['default'] = dj_database_url.parse(database_url)
+
+# if DEBUG is False (=> Production), use postgresql db from render.com
+if not DEBUG and os.environ.get("DATABASE_URL") is not None:
+    DATABASES["default"] = dj_database_url.parse(os.environ.get("DATABASE_URL"))
+
 # "postgres://lergershire_user:CebMmZLR6y8VVTBm5MCAL4m53oCqA0K1@dpg-cler2nl3qkas73avrap0-a.oregon-postgres.render.com/lergershire"
 # Password validation
 # https://docs.djangoproject.com/en/4.2/ref/settings/#auth-password-validators
@@ -137,10 +150,14 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/4.2/howto/static-files/
 
-STATIC_URL = 'static/'
 
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 MEDIA_URL = 'media/'
+
+
+STATIC_URL = "static/"
+
+STATIC_ROOT = os.path.join(BASE_DIR, "staticfiles")
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field
