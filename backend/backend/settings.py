@@ -33,6 +33,7 @@ DEBUG = True if os.environ.get("DEBUG") == "True" else False
 
 # ALLOWED_HOSTS = os.environ.get("ALLOWED_HOSTS", "127.0.0.1").split(" ")
 ALLOWED_HOSTS = ['*']
+CSRF_TRUSTED_ORIGINS = ['https://legershire.onrender.com/']
 
 AUTH_USER_MODEL = 'api.User'
 
