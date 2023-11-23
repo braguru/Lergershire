@@ -104,22 +104,23 @@ class Profile(models.Model):
 
 @receiver(reset_password_token_created)
 def password_reset_token_created(sender, instance, reset_password_token, *args, **kwargs):
-
-    # the below like concatinates your websites reset password url and the reset email token which will be required at a later stage
-    email_plaintext_message = "Open the link to reset your password" + " " + "{}{}".format(instance.request.build_absolute_uri("http://localhost:3000/login#/reset-password-form/"), reset_password_token.key)
-    
+    # the below line concatenates your website's reset password URL and the reset email token which will be required at a later stage
+    reset_password_url = "{}?token={}".format(
+            instance.request.build_absolute_uri(reverse('password_reset:reset-password-confirm')),
+            reset_password_token.key)
+    email_plaintext_message = f"Open the link to reset your password: {reset_password_url}"
     """
-        this below line is the django default sending email function, 
+        this below line is the django default sending email function,
         takes up some parameter (title(email title), message(email body), from(email sender), to(recipient(s))
     """
     send_mail(
         # title:
-        "Password Reset for {title}".format(title="Crediation portal account"),
+        "Password Reset for {title}".format(title="UpSkill portal account"),
         # message:
         email_plaintext_message,
         # from:
-        "info@yourcompany.com",
+        "sabastainofori@gmail.com",
         # to:
         [reset_password_token.user.email],
-        fail_silently=False,
+        fail_silently=False
     )

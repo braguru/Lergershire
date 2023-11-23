@@ -153,20 +153,25 @@ class logout_user(APIView):
         """
         logout(request)
         return Response(status=status.HTTP_200_OK)
-
-
-
-class Profile(viewsets.ModelViewSet):
-    """Handles creating and updating profile"""
-    queryset = Profile.objects.all()
-    serializer_class = ProfileSerializer
+    
+    
+class ProfileAPIView(APIView):
     permission_classes = (IsAuthenticated,)
-    
-    def get_object(self):
-        return self.request.user
-    
-    
+    serializer_class = ProfileSerializer
 
+    def get(self, request, *args, **kwargs):
+        # Assuming you have a one-to-one relationship between User and Profile
+        profile = request.user.profile
+        serializer = ProfileSerializer(profile)
+        return Response(serializer.data)
+
+    def put(self, request, *args, **kwargs):
+        profile = request.user.profile
+        serializer = ProfileSerializer(profile, data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        return Response(serializer.errors, status=400)
 
 
 class ChangePasswordView(APIView):
